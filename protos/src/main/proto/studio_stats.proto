@@ -952,6 +952,10 @@ message AndroidStudioEvent {
   optional ExternalUpdateManagerEvent external_update_manager_event = 266
       [lazy = true];
 
+  // set when kind = IN_MEMORY_COMPOSE_PREVIEW_TOOL_EVENT
+  optional InMemoryComposePreviewToolEvent
+      in_memory_compose_preview_tool_event = 267 [lazy = true];
+
   enum EventCategory {
     // The event was not grouped into any specific category (default).
     NO_EVENT_CATEGORY = 0;
@@ -2031,6 +2035,9 @@ message AndroidStudioEvent {
 
     // Event related to external updaters
     EXTERNAL_UPDATE_MANAGER_EVENT = 393;
+
+    // Event related to the In-Memory Compose Preview Tool API.
+    IN_MEMORY_COMPOSE_PREVIEW_TOOL_EVENT = 394;
   }
 
   // Represents different Performance Monitoring types.
@@ -3407,6 +3414,8 @@ message EmulatorAvdInfo {
     PIXEL_10A = 61;
     PIXEL_11_PRO_FOLD = 62;
     AI_GLASSES_AUDIO_DEVICE = 63;
+    FOLDABLE_4_3 = 64;
+    FOLDABLE_1_1 = 65;
   }
   // Name of the AVD. Deprecated as it could potentially contain PII.
   optional string name = 1 [deprecated = true];
@@ -13830,6 +13839,47 @@ message RenderToolEvent {
   // Quantitative metrics to understand project health
   optional int32 missing_classes_count = 11;
   optional int32 broken_classes_count = 12;
+
+  enum ToolType {
+    UNKNOWN_TOOL_TYPE = 0;
+    // File-backed render_compose_preview tool (RenderComposePreviewTool).
+    RENDER_COMPOSE_PREVIEW = 1;
+    // In-memory show_in_memory_compose_preview tool
+    // (ShowInMemoryComposePreviewTool).
+    SHOW_IN_MEMORY_COMPOSE_PREVIEW = 2;
+  }
+
+  // Which Compose render tool produced this event.
+  // Deprecated in favor of InMemoryComposePreviewToolEvent.
+  optional ToolType tool_type = 13 [deprecated = true];
+}
+
+/**
+ * Logged when the show_in_memory_compose_preview agent tool executes.
+ * Captures both tool-call-level metrics (overall success, compilation duration,
+ * end-to-end tool latency) and per-preview RenderToolEvents for each discovered
+ * @Preview function in the in-memory Kotlin snippet.
+ */
+message InMemoryComposePreviewToolEvent {
+  // Whether the tool call succeeded overall (at least one preview rendered).
+  optional bool is_success = 1;
+
+  // Set if the tool call failed before rendering any previews (e.g.,
+  // ERROR_FILE_NOT_FOUND, ERROR_BLOCKED_BY_AI_EXCLUDE, ERROR_MODULE_NOT_FOUND,
+  // ERROR_COMPILATION_FAILED, ERROR_COMPONENT_NOT_FOUND).
+  optional RenderToolEvent.RenderError render_error = 2;
+
+  // Time spent compiling the in-memory Kotlin snippet via FastPreviewManager.
+  optional int64 compilation_duration_ms = 3;
+
+  // End-to-end wall-clock time for the entire tool call (compilation + all
+  // preview renders).
+  optional int64 total_latency_ms = 4;
+
+  // One RenderToolEvent per discovered @Preview in the snippet, recording
+  // each individual preview's is_success, render_error, total_latency_ms,
+  // primary_exception_class, missing_classes_count, and broken_classes_count.
+  repeated RenderToolEvent preview_events = 5;
 }
 
 /**
@@ -16605,6 +16655,7 @@ message AppQualityInsightsUsageEvent {
     UNKNOWN_PRODUCT_TYPE = 0;
     CRASHLYTICS = 1;
     PLAY_VITALS = 2;
+    PLAY_FINDINGS = 3;
   }
 
   message EventDetails {
@@ -21561,6 +21612,8 @@ message SkillsEvent {
     optional EntryPoint entry_point = 7;
     // True if removing a duplicate scope in a multi-scope conflict.
     optional bool is_conflict_resolution = 8;
+    // Outcome status of a Skills Management user action.
+    optional ActionStatus action_status = 9;
   }
 
   // The type of skill.
@@ -21570,6 +21623,8 @@ message SkillsEvent {
     PRE_BUILT = 1;
     // Local project skills directory.
     USER_DEFINED = 2;
+    // Skills installed from a user-configured custom catalog.
+    CUSTOM_CATALOG = 3;
   }
 
   // The scope where a skill resides.
@@ -21589,6 +21644,17 @@ message SkillsEvent {
     UNINSTALL = 4;
     INSTALL = 5;
     UPLOAD = 6;
+    ADD_CATALOG = 7;
+    REMOVE_CATALOG = 8;
+  }
+
+  // Outcome status for Skills Management user actions.
+  enum ActionStatus {
+    UNKNOWN_ACTION_STATUS = 0;
+    // Emitted when the user action succeeds.
+    ACTION_STATUS_SUCCESS = 1;
+    // Emitted when the user action fails.
+    ACTION_STATUS_FAILED = 2;
   }
 
   // Entry points from which the Skills Manager UX is opened.
