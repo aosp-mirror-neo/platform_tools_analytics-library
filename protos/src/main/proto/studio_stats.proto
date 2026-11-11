@@ -18348,6 +18348,27 @@ message GeminiTelemetryEvent {
     // Model ids that do not match a registry entry are reported with the
     // provider's `*_UNKNOWN` value or `MODEL_UNKNOWN`.
     optional Model model = 12;
+
+    // The conversation timeline that drove an agent turn. This records where
+    // the conversation was interacted with, as opposed to UiEvent, which
+    // records how individual UI controls were used.
+    enum ActivitySurface {
+      // Default unset value.
+      ACTIVITY_SURFACE_UNSPECIFIED = 0;
+      // Conversation timeline in the agent tool window.
+      TOOL_WINDOW = 1;
+      // Conversation timeline in an agent editor tab.
+      AGENT_TAB = 2;
+    }
+
+    // Surface the conversation turn this event belongs to was started from.
+    // Set by the timeline when it interacts with the conversation (submitting
+    // a query, approving a plan or force-sending a steer message) and carried
+    // by every agent event in that turn: model requests, tool calls and
+    // permissions. Sub-agents inherit their parent's surface. A conversation
+    // open in both the tool window and an agent tab is attributed per turn,
+    // to whichever timeline started it.
+    optional ActivitySurface activity_surface = 13;
   }
 
   // Details of the agent used for a conversation: either the built-in agent or
