@@ -1,4 +1,4 @@
-load("//tools/base/bazel:proto.bzl", "INTELLIJ_PLATFORM_PROTO_VERSION", "kotlin_proto_library", "maven_proto_library")
+load("//tools/base/bazel:proto.bzl", "INTELLIJ_PLATFORM_PROTO_VERSION", "java_proto_library", "kotlin_proto_library", "maven_proto_library")
 load("//tools/base/common:version.bzl", "BASE_VERSION")
 
 maven_proto_library(
@@ -25,6 +25,15 @@ maven_proto_library(
     ],
     version = BASE_VERSION,
     visibility = ["//visibility:public"],
+)
+
+java_proto_library(
+    name = "android_cli_proto",
+    srcs = [
+        "android_cli_stats.proto",
+        "google_logs_publishing.proto",
+    ],
+    visibility = ["//tools/vendor/google/android-cli:__subpackages__"],
 )
 
 kotlin_proto_library(
