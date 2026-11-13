@@ -19116,6 +19116,120 @@ message StudioBotConfigurationEvent {
     }
   }
 
+  // Tracks the authentication funnel for an agent (e.g. ACP agents).
+  message AuthenticationEvent {
+    enum AuthMethod {
+      UNKNOWN = 0;
+      // Personal / consumer OAuth (e.g. Google OAuth, ChatGPT subscription,
+      // GitHub Copilot).
+      OAUTH_PERSONAL = 1;
+      // Enterprise / cloud OAuth (e.g. Vertex AI, Anthropic Console,
+      // Enterprise Agent Platform).
+      OAUTH_BUSINESS = 2;
+      // API key or token entered via IDE secrets / environment variables.
+      API_KEY = 3;
+      OTHER = 4;
+    }
+
+    // Logged when an authentication flow is initiated by the user.
+    message AuthStarted {
+      enum EntryPoint {
+        UNKNOWN = 0;
+        // Inline authentication prompt card in the chat timeline.
+        CHAT_TIMELINE = 1;
+        // Sign-in / re-authenticate button in Agent Registry settings.
+        SETTINGS = 2;
+        OTHER = 3;
+      }
+
+      optional EntryPoint entry_point = 1;
+    }
+
+    // Logged when the user performs an action on an authentication step.
+    message AuthStep {
+      enum Page {
+        UNKNOWN = 0;
+        // Auth method selector (inline chat prompt or Settings dropdown).
+        METHOD_SELECTION = 1;
+        // In-flight authentication spinner with Cancel action.
+        AUTHENTICATING = 2;
+        // Secret / environment variable editor dialog for API keys.
+        ENV_VAR_EDITOR = 3;
+        OTHER = 4;
+      }
+
+      enum ActionType {
+        ACTION_UNKNOWN = 0;
+        // User clicked an auth method button, "Sign In", or saved API keys.
+        COMPLETED = 1;
+        // User clicked "Cancel" / dismissed the auth prompt or in-flight auth.
+        CANCELLED = 2;
+        ACTION_OTHER = 3;
+      }
+
+      optional Page page = 1;
+      optional ActionType type = 2;
+      // Auth method selected or being configured on this step.
+      optional AuthMethod selected_method = 3;
+    }
+
+    // Logged when an authentication attempt finishes.
+    message AuthCompleted {
+      enum Outcome {
+        UNKNOWN = 0;
+        SUCCESS = 1;
+        // User cancelled while authentication was in progress.
+        CANCELLED = 2;
+        // Authentication attempt failed (see error_code for the cause).
+        FAILED = 3;
+        OTHER = 4;
+      }
+
+      enum ErrorCode {
+        ERROR_UNKNOWN = 0;
+        // Required API key or secret environment variable is not configured in
+        // IDE secrets / acp.json.
+        MISSING_SECRET = 1;
+        // Requested auth method is not advertised or supported by the agent.
+        UNSUPPORTED_AUTH_METHOD = 2;
+        // Agent binary is not installed or launch command is missing in
+        // acp.json.
+        AGENT_NOT_INSTALLED = 3;
+        // Agent process exited prematurely or failed to start (e.g. npm
+        // ETARGET, bad binary path).
+        PROCESS_STARTUP_FAILED = 4;
+        // ACP `initialize` handshake timed out (60s deadline).
+        HANDSHAKE_TIMEOUT = 5;
+        // Transport pipe/socket disconnected or connection refused during auth.
+        CONNECTION_FAILED = 6;
+        // Out-of-band CLI login command (`TerminalAuth`, e.g. `claude auth
+        // login`, `copilot login`) exited non-zero.
+        TERMINAL_AUTH_FAILED = 7;
+        // Reconnect after a successful terminal auth command failed.
+        RECONNECT_FAILED = 8;
+        // Agent requires authentication or rejected credentials (e.g. 401
+        // Unauthorized, invalid API key, expired token, unsupported
+        // subscription tier).
+        AUTH_REQUIRED = 9;
+        // Agent returned a JSON-RPC protocol/internal error (-32000, -32603)
+        // during `authenticate` / `auth/login`.
+        PROTOCOL_ERROR = 10;
+        ERROR_OTHER = 11;
+      }
+
+      optional AuthMethod method = 1;
+      optional Outcome outcome = 2;
+      // Populated when outcome == FAILED.
+      optional ErrorCode error_code = 3;
+    }
+
+    oneof event {
+      AuthStarted auth_started = 1;
+      AuthStep auth_step = 2;
+      AuthCompleted auth_completed = 3;
+    }
+  }
+
   // The envelope holds common metadata across Studio Bot configuration events.
   message EventEnvelope {
     // Details of the agent (built-in or external ACP agent) for this event.
@@ -19124,7 +19238,11 @@ message StudioBotConfigurationEvent {
   }
 
   optional EventEnvelope envelope = 2;
-  optional OnboardingEvent onboarding_event = 1;
+
+  oneof event {
+    OnboardingEvent onboarding_event = 1;
+    AuthenticationEvent authentication_event = 3;
+  }
 }
 
 message SmlConfigurationEvent {
