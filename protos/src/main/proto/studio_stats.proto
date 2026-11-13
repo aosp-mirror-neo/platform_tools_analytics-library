@@ -9441,6 +9441,10 @@ message SherlockEvent {
   // Set if |type| is |APK_INSTALL_COMPLETED|
   optional ApkInstallMetadata apk_install_metadata = 15 [lazy = true];
 
+  // Set if |type| is |UI_ELEMENT_DISPLAYED|
+  optional UiElementDisplayedMetadata ui_element_displayed_metadata = 16
+      [lazy = true];
+
   enum Type {
     UNKNOWN_TYPE = 0;
 
@@ -9449,6 +9453,10 @@ message SherlockEvent {
     SHERLOCK_PROJECT_OPENED = 102;
     SHERLOCK_PROJECT_CLOSED = 103;
     APK_INSTALL_COMPLETED = 104;
+
+    // Fired each time a major UI element (e.g. a view, tab or panel) becomes
+    // displayed.
+    UI_ELEMENT_DISPLAYED = 105;
 
     /// System Trace recording.
 
@@ -10080,6 +10088,27 @@ message SherlockEvent {
       TRACE_LOAD_STATUS_SUCCESS = 1;
       TRACE_LOAD_STATUS_FAILURE_UNKNOWN = 2;
       TRACE_LOAD_STATUS_FAILURE_DB_GENERATION = 3;
+    }
+  }
+
+  // Metadata for the |UI_ELEMENT_DISPLAYED| event.
+  //
+  // Logged each time the element becomes displayed: when it is shown by
+  // default, and each time the user switches to it. Not logged again while the
+  // element stays displayed. Elements that become displayed at the same time
+  // are logged as separate events.
+  message UiElementDisplayedMetadata {
+    // The element that was displayed.
+    optional UiElement element = 1;
+
+    enum UiElement {
+      APA_UI_ELEMENT_UNKNOWN = 0;
+      APA_UI_ELEMENT_GFXR_PERFORMANCE_VIEW = 1;
+      APA_UI_ELEMENT_GFXR_FRAME_INSPECTOR_VIEW = 2;
+      APA_UI_ELEMENT_GFXR_COMMAND_TREE_TAB = 3;
+      APA_UI_ELEMENT_GFXR_RENDER_PASSES_TAB = 4;
+      APA_UI_ELEMENT_GFXR_COMMAND_TREE_DETAILS_PANEL = 5;
+      APA_UI_ELEMENT_GFXR_RENDER_PASS_DETAILS_PANEL = 6;
     }
   }
 }
