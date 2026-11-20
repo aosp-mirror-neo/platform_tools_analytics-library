@@ -456,6 +456,7 @@ enum GradleTaskExecutionType {
     REDIRECT_IDE_BUNDLE_OUTPUTS = 369;
     GENERATE_COMPOSE_PREVIEW_RUNFILES = 370;
     EXTRACT_JAVA_RES = 371;
+    COVERAGE_CLASS_LIST = 372;
 }
 
 enum BooleanOption {
