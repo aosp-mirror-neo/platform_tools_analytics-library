@@ -5381,6 +5381,8 @@ message GradleBuildProject {
     PRIVACY_SANDBOX_SDK = 9;
     // The 'com.android.kotlin.multiplatform.library' plugin
     KOTLIN_MULTIPLATFORM_ANDROID_LIBRARY = 10;
+    // The 'com.android.report-aggregation' plugin
+    REPORT_AGGREGATION = 11;
   }
 
   enum PluginGeneration {
@@ -9441,6 +9443,10 @@ message SherlockEvent {
   // Set if |type| is |APK_INSTALL_COMPLETED|
   optional ApkInstallMetadata apk_install_metadata = 15 [lazy = true];
 
+  // Set if |type| is |UI_ELEMENT_DISPLAYED|
+  optional UiElementDisplayedMetadata ui_element_displayed_metadata = 16
+      [lazy = true];
+
   enum Type {
     UNKNOWN_TYPE = 0;
 
@@ -9449,6 +9455,10 @@ message SherlockEvent {
     SHERLOCK_PROJECT_OPENED = 102;
     SHERLOCK_PROJECT_CLOSED = 103;
     APK_INSTALL_COMPLETED = 104;
+
+    // Fired each time a major UI element (e.g. a view, tab or panel) becomes
+    // displayed.
+    UI_ELEMENT_DISPLAYED = 105;
 
     /// System Trace recording.
 
@@ -10080,6 +10090,27 @@ message SherlockEvent {
       TRACE_LOAD_STATUS_SUCCESS = 1;
       TRACE_LOAD_STATUS_FAILURE_UNKNOWN = 2;
       TRACE_LOAD_STATUS_FAILURE_DB_GENERATION = 3;
+    }
+  }
+
+  // Metadata for the |UI_ELEMENT_DISPLAYED| event.
+  //
+  // Logged each time the element becomes displayed: when it is shown by
+  // default, and each time the user switches to it. Not logged again while the
+  // element stays displayed. Elements that become displayed at the same time
+  // are logged as separate events.
+  message UiElementDisplayedMetadata {
+    // The element that was displayed.
+    optional UiElement element = 1;
+
+    enum UiElement {
+      APA_UI_ELEMENT_UNKNOWN = 0;
+      APA_UI_ELEMENT_GFXR_PERFORMANCE_VIEW = 1;
+      APA_UI_ELEMENT_GFXR_FRAME_INSPECTOR_VIEW = 2;
+      APA_UI_ELEMENT_GFXR_COMMAND_TREE_TAB = 3;
+      APA_UI_ELEMENT_GFXR_RENDER_PASSES_TAB = 4;
+      APA_UI_ELEMENT_GFXR_COMMAND_TREE_DETAILS_PANEL = 5;
+      APA_UI_ELEMENT_GFXR_RENDER_PASS_DETAILS_PANEL = 6;
     }
   }
 }
@@ -18348,6 +18379,27 @@ message GeminiTelemetryEvent {
     // Model ids that do not match a registry entry are reported with the
     // provider's `*_UNKNOWN` value or `MODEL_UNKNOWN`.
     optional Model model = 12;
+
+    // The conversation timeline that drove an agent turn. This records where
+    // the conversation was interacted with, as opposed to UiEvent, which
+    // records how individual UI controls were used.
+    enum ActivitySurface {
+      // Default unset value.
+      ACTIVITY_SURFACE_UNSPECIFIED = 0;
+      // Conversation timeline in the agent tool window.
+      TOOL_WINDOW = 1;
+      // Conversation timeline in an agent editor tab.
+      AGENT_TAB = 2;
+    }
+
+    // Surface the conversation turn this event belongs to was started from.
+    // Set by the timeline when it interacts with the conversation (submitting
+    // a query, approving a plan or force-sending a steer message) and carried
+    // by every agent event in that turn: model requests, tool calls and
+    // permissions. Sub-agents inherit their parent's surface. A conversation
+    // open in both the tool window and an agent tab is attributed per turn,
+    // to whichever timeline started it.
+    optional ActivitySurface activity_surface = 13;
   }
 
   // Details of the agent used for a conversation: either the built-in agent or
@@ -19095,6 +19147,120 @@ message StudioBotConfigurationEvent {
     }
   }
 
+  // Tracks the authentication funnel for an agent (e.g. ACP agents).
+  message AuthenticationEvent {
+    enum AuthMethod {
+      UNKNOWN = 0;
+      // Personal / consumer OAuth (e.g. Google OAuth, ChatGPT subscription,
+      // GitHub Copilot).
+      OAUTH_PERSONAL = 1;
+      // Enterprise / cloud OAuth (e.g. Vertex AI, Anthropic Console,
+      // Enterprise Agent Platform).
+      OAUTH_BUSINESS = 2;
+      // API key or token entered via IDE secrets / environment variables.
+      API_KEY = 3;
+      OTHER = 4;
+    }
+
+    // Logged when an authentication flow is initiated by the user.
+    message AuthStarted {
+      enum EntryPoint {
+        UNKNOWN = 0;
+        // Inline authentication prompt card in the chat timeline.
+        CHAT_TIMELINE = 1;
+        // Sign-in / re-authenticate button in Agent Registry settings.
+        SETTINGS = 2;
+        OTHER = 3;
+      }
+
+      optional EntryPoint entry_point = 1;
+    }
+
+    // Logged when the user performs an action on an authentication step.
+    message AuthStep {
+      enum Page {
+        UNKNOWN = 0;
+        // Auth method selector (inline chat prompt or Settings dropdown).
+        METHOD_SELECTION = 1;
+        // In-flight authentication spinner with Cancel action.
+        AUTHENTICATING = 2;
+        // Secret / environment variable editor dialog for API keys.
+        ENV_VAR_EDITOR = 3;
+        OTHER = 4;
+      }
+
+      enum ActionType {
+        ACTION_UNKNOWN = 0;
+        // User clicked an auth method button, "Sign In", or saved API keys.
+        COMPLETED = 1;
+        // User clicked "Cancel" / dismissed the auth prompt or in-flight auth.
+        CANCELLED = 2;
+        ACTION_OTHER = 3;
+      }
+
+      optional Page page = 1;
+      optional ActionType type = 2;
+      // Auth method selected or being configured on this step.
+      optional AuthMethod selected_method = 3;
+    }
+
+    // Logged when an authentication attempt finishes.
+    message AuthCompleted {
+      enum Outcome {
+        UNKNOWN = 0;
+        SUCCESS = 1;
+        // User cancelled while authentication was in progress.
+        CANCELLED = 2;
+        // Authentication attempt failed (see error_code for the cause).
+        FAILED = 3;
+        OTHER = 4;
+      }
+
+      enum ErrorCode {
+        ERROR_UNKNOWN = 0;
+        // Required API key or secret environment variable is not configured in
+        // IDE secrets / acp.json.
+        MISSING_SECRET = 1;
+        // Requested auth method is not advertised or supported by the agent.
+        UNSUPPORTED_AUTH_METHOD = 2;
+        // Agent binary is not installed or launch command is missing in
+        // acp.json.
+        AGENT_NOT_INSTALLED = 3;
+        // Agent process exited prematurely or failed to start (e.g. npm
+        // ETARGET, bad binary path).
+        PROCESS_STARTUP_FAILED = 4;
+        // ACP `initialize` handshake timed out (60s deadline).
+        HANDSHAKE_TIMEOUT = 5;
+        // Transport pipe/socket disconnected or connection refused during auth.
+        CONNECTION_FAILED = 6;
+        // Out-of-band CLI login command (`TerminalAuth`, e.g. `claude auth
+        // login`, `copilot login`) exited non-zero.
+        TERMINAL_AUTH_FAILED = 7;
+        // Reconnect after a successful terminal auth command failed.
+        RECONNECT_FAILED = 8;
+        // Agent requires authentication or rejected credentials (e.g. 401
+        // Unauthorized, invalid API key, expired token, unsupported
+        // subscription tier).
+        AUTH_REQUIRED = 9;
+        // Agent returned a JSON-RPC protocol/internal error (-32000, -32603)
+        // during `authenticate` / `auth/login`.
+        PROTOCOL_ERROR = 10;
+        ERROR_OTHER = 11;
+      }
+
+      optional AuthMethod method = 1;
+      optional Outcome outcome = 2;
+      // Populated when outcome == FAILED.
+      optional ErrorCode error_code = 3;
+    }
+
+    oneof event {
+      AuthStarted auth_started = 1;
+      AuthStep auth_step = 2;
+      AuthCompleted auth_completed = 3;
+    }
+  }
+
   // The envelope holds common metadata across Studio Bot configuration events.
   message EventEnvelope {
     // Details of the agent (built-in or external ACP agent) for this event.
@@ -19103,7 +19269,11 @@ message StudioBotConfigurationEvent {
   }
 
   optional EventEnvelope envelope = 2;
-  optional OnboardingEvent onboarding_event = 1;
+
+  oneof event {
+    OnboardingEvent onboarding_event = 1;
+    AuthenticationEvent authentication_event = 3;
+  }
 }
 
 message SmlConfigurationEvent {
