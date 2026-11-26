@@ -7192,6 +7192,14 @@ message EditorPickerEvent {
         DEVICE_CUTOUT = 18;
         // System Navigation of Device in the Preview panel
         DEVICE_NAVIGATION = 19;
+        // Expand axis of Device in the Preview panel
+        DEVICE_EXPAND = 20;
+        // Max width when expanding a Device horizontally in the Preview panel
+        DEVICE_MAX_WIDTH = 21;
+        // Max height when expanding a Device vertically in the Preview panel
+        DEVICE_MAX_HEIGHT = 22;
+        // Initial scroll target of Device in the Preview panel
+        DEVICE_SCROLL_TO = 23;
       }
 
       // Typical device targets for Android applications
@@ -7276,6 +7284,16 @@ message EditorPickerEvent {
         NAVIGATION_BUTTONS = 27;
         // Set system navigation to 'gesture'
         NAVIGATION_GESTURE = 28;
+        // Set expand axis to 'none'
+        EXPAND_NONE = 29;
+        // Set expand axis to 'vertical'
+        EXPAND_VERTICAL = 30;
+        // Set expand axis to 'horizontal'
+        EXPAND_HORIZONTAL = 31;
+        // Set scroll target to 'none'
+        SCROLL_TO_NONE = 32;
+        // Set scroll target to 'end'
+        SCROLL_TO_END = 33;
       }
 
       // Parameter modified
@@ -13076,6 +13094,37 @@ message PreviewRefreshEvent {
     // Simple class name of the exception thrown in a render error, e.g.
     // IllegalStateException or ClassNotFoundException
     optional string render_exception_simple_name = 5;
+
+    // Expand/scrollTo device spec usage and limit diagnostics for this render.
+    // Only set when the preview uses expand, maxHeight/maxWidth, or scrollTo.
+    message DeviceSpecRenderInfo {
+      enum ExpandAxis {
+        EXPAND_AXIS_UNSPECIFIED = 0;
+        VERTICAL = 1;
+        HORIZONTAL = 2;
+      }
+
+      enum ScrollTo {
+        SCROLL_TO_UNSPECIFIED = 0;
+        END = 1;
+      }
+
+      optional ExpandAxis expand_axis = 1;
+      // True if maxHeight or maxWidth was explicitly set in the device spec.
+      optional bool has_custom_max_size = 2;
+      optional ScrollTo scroll_to = 3;
+      // True if an expanded render reached the effective maxHeight/maxWidth cap
+      // (or the default 4096px cap).
+      optional bool hit_expand_size_cap = 4;
+      // True if the measured layout exceeded RenderTask.MAX_IMAGE_SIZE (8 MP)
+      // and the rendered bitmap was downscaled.
+      optional bool hit_max_image_size_limit = 5;
+      // True if the project's ui-tooling did not support the requested
+      // expand/scrollTo parameter(s) and triggered the fallback warning.
+      optional bool unsupported_ui_tooling_fallback = 6;
+    }
+
+    optional DeviceSpecRenderInfo device_spec_render_info = 6;
   }
 }
 

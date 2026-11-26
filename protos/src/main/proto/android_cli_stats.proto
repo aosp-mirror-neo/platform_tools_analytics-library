@@ -49,4 +49,33 @@ message AndroidCliInvocation {
     CODEX = 6;
     AI_STUDIO = 7;
   }
+
+  // Aggregate expand/scrollTo preview render metrics for an `android preview`
+  // invocation. Only populated when previews are rendered.
+  message PreviewRenderStats {
+    // Total number of previews rendered in this invocation.
+    optional int32 total_previews = 1;
+    // Number of rendered previews using `expand=vertical`.
+    optional int32 expand_vertical_count = 2;
+    // Number of rendered previews using `expand=horizontal`.
+    optional int32 expand_horizontal_count = 3;
+    // Number of rendered previews with an explicit `maxHeight` or `maxWidth`.
+    optional int32 custom_max_size_count = 4;
+    // Number of rendered previews using `scrollTo=end`.
+    optional int32 scroll_to_end_count = 5;
+    // Number of expanded previews that reached the effective
+    // `maxHeight`/`maxWidth` cap (or the default 4096px cap).
+    optional int32 hit_expand_size_cap_count = 6;
+    // Number of rendered previews whose measured layout exceeded the 8 MP
+    // MAX_IMAGE_SIZE limit and were downscaled.
+    optional int32 hit_max_image_size_limit_count = 7;
+    // Number of rendered previews where the project's `ui-tooling` did not
+    // support the requested expand/scrollTo parameter(s) and triggered the
+    // fallback warning.
+    optional int32 unsupported_ui_tooling_fallback_count = 8;
+  }
+
+  // Aggregate preview render metrics, set for `android preview` render
+  // invocations.
+  optional PreviewRenderStats preview_render_stats = 8;
 }
