@@ -18400,6 +18400,27 @@ message GeminiTelemetryEvent {
     // open in both the tool window and an agent tab is attributed per turn,
     // to whichever timeline started it.
     optional ActivitySurface activity_surface = 13;
+
+    // Where in Studio the conversation was started.
+    enum ConversationOrigin {
+      // Default unset value.
+      CONVERSATION_ORIGIN_UNSPECIFIED = 0;
+      // Started by the user from the agent chat.
+      CHAT = 1;
+      // Started by the New Project Agent from the new project wizard.
+      NEW_PROJECT_AGENT = 2;
+      // Started by the Import Project flow.
+      IMPORT_PROJECT = 3;
+      // Started from another entry point that does not have its own value
+      // yet, such as "Fix with AI", Logcat or a deep link.
+      OTHER_ORIGIN = 4;
+    }
+
+    // Where in Studio the conversation this event belongs to was started. Set
+    // on every event with root_trajectory_id and always the same for a given
+    // root_trajectory_id. Stored with the conversation, so it survives IDE
+    // restarts. Applies to both the built-in agent and ACP agents.
+    optional ConversationOrigin conversation_origin = 14;
   }
 
   // Details of the agent used for a conversation: either the built-in agent or
