@@ -18621,6 +18621,9 @@ message GeminiTelemetryEvent {
       // Ties together events belonging to the same user query turn.
       // Synthetically generated in metrics for log analysis.
       optional string user_query_id = 4;
+      // JSON-RPC error code returned by an ACP agent when the query failed
+      // (e.g., -32000, -32603). Unset otherwise.
+      optional int32 json_rpc_error_code = 5;
     }
 
     // Tracks inference configuration changes within the chat tool window.
